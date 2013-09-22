@@ -19,9 +19,6 @@ $(document).ready(function() {
 	var currentScale = pentatonic
 	var newFrequency = 1;
 
-	//$("#positions").html(frequencies)
-
-
 	meSpeak.loadConfig("mespeak_config.json");
 	meSpeak.loadVoice('voices/en/en-us.json');
 
@@ -46,7 +43,7 @@ $(document).ready(function() {
 
 		window.oscillator.frequency.value = closest_f;
 		window.oscillator.connect(gain)
-		
+
 		gain.gain.value = 1;
 		$(".inner-gradient").removeClass("visible");
 		if ($(e.target).hasClass("middle-text")) {
@@ -57,6 +54,7 @@ $(document).ready(function() {
 			$(e.target).addClass("visible");
 		}
 		canvasObjs[scales.indexOf(currentScale)].enableGain = 1;
+		canvasObjs[scales.indexOf(currentScale)].newFrequency = closest_f;
 		window.oscillator.start(0)
 
 		window.stopTimer = setTimeout(function() {
@@ -80,9 +78,8 @@ $(document).ready(function() {
 				currentScale = getScale(curY);
 				var freq = getFreq(curX, currentScale);
 				recorded.push(freq);
-				console.log(recorded)
 				$("body").append("<div class='circle-hint' style='top:" + (curY - 30) + "px; left:" + (curX - 30) +"px;'>" + "</div>");
-				clearInterval(touchInterval)
+				clearInterval(touchInterval);
 			}
 		},1)
 		startX = e.originalEvent.changedTouches[0].pageX;
@@ -100,7 +97,8 @@ $(document).ready(function() {
 			startY = curY;
 		}
 	});
-	$(document).on("touchend", function(e) {
+
+	var endCleanup = function() {
 		clearInterval(touchInterval);
 		touchTimer = 0;
 		touchActive = false;
@@ -108,15 +106,15 @@ $(document).ready(function() {
 		setTimeout(function() {
 			$(".circle-hint").remove();
 		}, 500);
+	}
+	$(document).on("touchend", function(e) {
+		endCleanup();
 	});
 	$(document).on("touchcancel", function(e) {
-		clearInterval(touchInterval);
-		touchTimer = 0;
-		touchActive = false;
-
-		setTimeout(function() {
-			$(".circle-hint").remove();
-		}, 500);
+		endCleanup();
+	});
+	$(document).on("touchleave", function(e) {
+		endCleanup();
 	});
 
 	var playCount = 0;
@@ -130,7 +128,6 @@ $(document).ready(function() {
 				playCount += 1;
 				var phrase = phraseArray.shift();
 				phraseCopy.push(phrase);
-				console.log((100/12) * frequencies.indexOf(recorded[playCount]))
 				soundBytes.push(meSpeak.speak(phrase, {pitch: (100/frequencies.length) * frequencies.indexOf(recorded[playCount]), rawdata: true}));
 				if (playCount > recorded.length - 1){
 					playCount = 0;
@@ -157,7 +154,7 @@ $(document).ready(function() {
 				};
 			}, 1);
 		}, 500);
-		
+
 
 	});
 
@@ -172,14 +169,12 @@ $(document).ready(function() {
 		return scales[closest_scale];
 	}
 	var getFreq = function(x, currentScale) {
-		console.log(width, x)
 		var closest_f = 440;
 		for (var i=0; i < currentScale.length; i++) {
 			if ( x > width / currentScale.length * i) {
 				closest_f = currentScale[i]
 			}
 		}
-		newFrequency = closest_f;
 		return closest_f;
 	};
 	setInterval(function() {
@@ -212,25 +207,25 @@ $(document).ready(function() {
 		};
 	})();
 
-	
-	var canvasWidth = 1536;
+
+	var canvasWidth = width;
 
 	var x = 0;
 	var y = 75;
 
 	var time = 0;
 
-	var speed = 8;
-	var frequency = 1;
-	var previousFreq = 0;
+	var speed = 5;
 	var amplitude = 40;
-	var currentFreq = previousFreq;
 	var fadeIn = 30;
-	var scaleFactor = 1/5;
+	var scaleFactor = 200000;
+	var scalePower = 1.5
 
 	var canvasObj = function(name, ctx) {
 		this.name = name;
-		this.newFrequency = 1;
+		this.newFrequency = 0;
+		this.previousFreq = 0;
+		this.frequency = 0;
 		this.ctx = ctx;
 		this.enableGain = 0;
 
@@ -243,22 +238,21 @@ $(document).ready(function() {
 			ctx.strokeStyle = '#EEE';
 			time += 1;
 			if (time < fadeIn) {
-				ctx.moveTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow((previousFreq+(((-.5) * Math.cos(time / fadeIn * 3.14159) + .5) * (frequency - previousFreq))), scaleFactor) / 100));
-				for (x = 0; x < canvasWidth; x += 3) {
-					ctx.lineTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow((previousFreq + (((-.5) * Math.cos(time / fadeIn * 3.14159) + .5) * (frequency - previousFreq))),scaleFactor) / 100));
+				ctx.moveTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow((this.previousFreq+(((-.5) * Math.cos(time / fadeIn * 3.14159) + .5) * (this.frequency - this.previousFreq))), scalePower) / scaleFactor));
+				for (x = 0; x < canvasWidth; x += 1) {
+					ctx.lineTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow((this.previousFreq + (((-.5) * Math.cos(time / fadeIn * 3.14159) + .5) * (this.frequency - this.previousFreq))),scalePower) / scaleFactor));
 				}
 			} else {
-				ctx.moveTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow(frequency, scaleFactor) / 100));
-				previousFreq=frequency;
-				for (x = 0; x < canvasWidth; x += 3) {
-					ctx.lineTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow(frequency, scaleFactor) / 100));
+				ctx.moveTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow(this.frequency, scalePower) / scaleFactor));
+				this.previousFreq=this.frequency;
+				for (x = 0; x < canvasWidth; x += 1) {
+					ctx.lineTo(x, y + amplitude * window.gain.gain.value * this.enableGain * Math.cos((x + time * speed) * Math.pow(this.frequency, scalePower) / scaleFactor));
 				}
 			}
 			ctx.stroke();
-			if ((newFrequency != frequency) && (Math.cos(time * speed * Math.pow(frequency, scaleFactor) / 100) > 0.995)) {
-				console.log("different!")
+			if ((this.newFrequency != this.frequency) && (Math.cos(time * speed * Math.pow(this.frequency, scalePower) / scaleFactor) > 0.995)) {
 				time = 0;
-				frequency = newFrequency;
+				this.frequency = this.newFrequency;
 			}
 			var that = this;
 		    requestAnimFrame(function() {
@@ -269,17 +263,17 @@ $(document).ready(function() {
 
 	var canvas1 = document.getElementById('majorCanvas');
 	var canvasObj1 = new canvasObj('majorCanvas', canvas1.getContext('2d'));
-	
+
 	var canvas2 = document.getElementById('minorCanvas');
 	var canvasObj2 = new canvasObj('minorCanvas', canvas2.getContext('2d'));
-	
+
 	var canvas3 = document.getElementById('pentatonicCanvas');
 	var canvasObj3 = new canvasObj('pentatonicCanvas', canvas3.getContext('2d'));
-	
+
 	var canvas4 = document.getElementById('bluesCanvas');
 	var canvasObj4 = new canvasObj('bluesCanvas', canvas4.getContext('2d'));
 
-	
+
 	canvasObj1.animate();
 	canvasObj2.animate();
 	canvasObj3.animate();
@@ -287,6 +281,7 @@ $(document).ready(function() {
 
 	var canvasObjs = [canvasObj1,canvasObj2,canvasObj3,canvasObj4];
 });
+
 
 
 
