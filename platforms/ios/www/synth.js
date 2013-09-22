@@ -55,6 +55,7 @@ $(document).ready(function() {
 		}
 		canvasObjs[scales.indexOf(currentScale)].enableGain = 1;
 		canvasObjs[scales.indexOf(currentScale)].newFrequency = closest_f;
+
 		window.oscillator.start(0)
 
 		window.stopTimer = setTimeout(function() {
@@ -72,14 +73,16 @@ $(document).ready(function() {
 	var curX = 0;
 	var curY = 0;
 	$(document).on("touchstart", function(e) {
-		touchInterval = setInterval(function() {
+		touchTimer = 0;
+		window.touchInterval = setInterval(function() {
 			touchTimer += 1
 			if (touchTimer > 100 && touchActive) {
+				touchTimer = 0;
 				currentScale = getScale(curY);
 				var freq = getFreq(curX, currentScale);
 				recorded.push(freq);
-				$("body").append("<div class='circle-hint' style='top:" + (curY - 30) + "px; left:" + (curX - 30) +"px;'>" + "</div>");
-				clearInterval(touchInterval);
+				$("body").append("<div class='circle-hint' style='top:" + (curY - 40) + "px; left:" + (curX - 40) +"px;'>" + "</div>");
+				clearInterval(window.touchInterval);
 			}
 		},1)
 		startX = e.originalEvent.changedTouches[0].pageX;
@@ -99,7 +102,7 @@ $(document).ready(function() {
 	});
 
 	var endCleanup = function() {
-		clearInterval(touchInterval);
+		clearInterval(window.touchInterval);
 		touchTimer = 0;
 		touchActive = false;
 
@@ -124,7 +127,7 @@ $(document).ready(function() {
 		$("#page-message").addClass("visible")
 		var phraseCopy = [];
 		setTimeout(function () {
-			cacheInterval = setInterval(function() {
+			window.cacheInterval = setInterval(function() {
 				playCount += 1;
 				var phrase = phraseArray.shift();
 				phraseCopy.push(phrase);
@@ -133,7 +136,7 @@ $(document).ready(function() {
 					playCount = 0;
 				};
 				if (phraseArray.length < 1) {
-					clearInterval(cacheInterval);
+					clearInterval(window.cacheInterval);
 					phraseArray = phraseCopy;
 					$("#page-message").html("PLAYING")
 					setTimeout(function() {
@@ -141,9 +144,9 @@ $(document).ready(function() {
 					}, 1000);
 					$("#white-text").html(phraseCopy.join(" "));
 					$("#white-text").addClass("visible");
-					playInterval = setInterval(function() {
+					window.playInterval = setInterval(function() {
 						if (soundBytes.length < 1) {
-							clearInterval(playInterval);
+							clearInterval(window.playInterval);
 							$("#white-text").removeClass("visible");
 							$("#red-text").html(" ");
 						} else {
@@ -180,20 +183,24 @@ $(document).ready(function() {
 	setInterval(function() {
 		if (!touchActive) {
 	        if (gain.gain.value > 0) {
+	        	canvasObjs[scales.indexOf(currentScale)].newFrequency = canvasObjs[scales.indexOf(currentScale)].frequency*gain.gain.value;
 	            gain.gain.value = gain.gain.value - 0.05;
 	            $(".inner-gradient.visible").css("opacity", gain.gain.value * 20);
 	        } else {
+	        	gain.gain.value = 0;
 	        	$(".inner-gradient").removeAttr("style");
 	        	$(".inner-gradient").removeClass("visible");
 	        	for (var i = 0; i < canvasObjs.length; i++) {
 	        		canvasObjs[i].enableGain = 0;
+	        		canvasObjs[scales.indexOf(currentScale)].newFrequency = 0;
+		
 	        	}
 	        }
 	    }
 	}, 20);
 	$("#text-button").on("touchstart", function() {
 		$("#text-container").toggleClass("animate-up");
-	})
+	});
 	$("#text-box").on("change", function() {
 		phrase = $(this).val();
 		phraseArray = phrase.split(" ");
@@ -215,11 +222,11 @@ $(document).ready(function() {
 
 	var time = 0;
 
-	var speed = 5;
+	var speed = 3;
 	var amplitude = 40;
-	var fadeIn = 30;
+	var fadeIn = 60;
 	var scaleFactor = 200000;
-	var scalePower = 1.5
+	var scalePower = 1.5;
 
 	var canvasObj = function(name, ctx) {
 		this.name = name;
