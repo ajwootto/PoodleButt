@@ -19,12 +19,14 @@ $(document).ready(function() {
 	var currentScale = pentatonic
 	var newFrequency = 1;
 
+	var demoMode = false;
+
 	meSpeak.loadConfig("mespeak_config.json");
 	meSpeak.loadVoice('voices/en/en-us.json');
 
 	var recording = true;
 	var recorded = [];
-	var phrase = "There once was a man with a poodle butt which he took to the market in order to strut";
+	var phrase = "There once was a man who was a fan.";
 	$("#text-box").val(phrase)
 	var phraseArray = phrase.split(" ");
 
@@ -55,8 +57,8 @@ $(document).ready(function() {
 		}
 		canvasObjs[scales.indexOf(currentScale)].enableGain = 1;
 		canvasObjs[scales.indexOf(currentScale)].newFrequency = closest_f;
-
-		window.oscillator.start(0)
+		if (!demoMode)
+			window.oscillator.start(0)
 
 		window.stopTimer = setTimeout(function() {
 			clearTimeout(stopTimer);
@@ -76,7 +78,7 @@ $(document).ready(function() {
 		touchTimer = 0;
 		window.touchInterval = setInterval(function() {
 			touchTimer += 1
-			if (touchTimer > 100 && touchActive) {
+			if (touchTimer > 15 && touchActive) {
 				touchTimer = 0;
 				currentScale = getScale(curY);
 				var freq = getFreq(curX, currentScale);
@@ -156,7 +158,7 @@ $(document).ready(function() {
 					}, 500)
 				};
 			}, 1);
-		}, 500);
+		}, 50);
 
 
 	});
@@ -184,7 +186,8 @@ $(document).ready(function() {
 		if (!touchActive) {
 	        if (gain.gain.value > 0) {
 	        	canvasObjs[scales.indexOf(currentScale)].newFrequency = canvasObjs[scales.indexOf(currentScale)].frequency*gain.gain.value;
-	            gain.gain.value = gain.gain.value - 0.05;
+	            if (!demoMode)
+	            	gain.gain.value = gain.gain.value - 0.05;
 	            $(".inner-gradient.visible").css("opacity", gain.gain.value * 20);
 	        } else {
 	        	gain.gain.value = 0;

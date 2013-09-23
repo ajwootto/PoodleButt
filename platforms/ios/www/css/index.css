@@ -166,7 +166,7 @@ h1 {
     position: absolute;
     left: 25%;
     display: block;
-    z-index:2000;
+    z-index:200000;
     height:150px;
     background-color: #DDD;
     opacity: 0.8;
@@ -182,6 +182,7 @@ h1 {
     display:block;
     position: absolute;
     font-size:2em;
+    z-index:200001;
 }
 #text-button {
     width:100px;
